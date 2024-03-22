@@ -71,7 +71,19 @@ pipeline {
         stage('Clean Up Docker Images on Jenkins Server') {
             steps {
                 echo 'Cleaning up unused Docker images on Jenkins server'
-                sh "docker image prune -f --all --filter \"until=1h\""
+                sh "docker image prune -a -f"
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                echo 'Upload to S3'
+                dir("$(env.WORKSPACE)") {
+                    sh 'zip -r deploy.zip ./deploy appspec.yaml'
+                    withAWS(region:"${REGION}", credentials: "${AWS_CREDENTIAL_NAME}") {
+                        s3Upload(file:"deploy.zip", bucket:"std07-codedeploy-bucket")
+                    }
+                }
             }
         }
 
